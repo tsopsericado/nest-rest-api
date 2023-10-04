@@ -23,7 +23,7 @@ export class Book {
   author: string;
 
   @Prop()
-  price: string;
+  price: number;
   
   @Prop()
   category: Category;
