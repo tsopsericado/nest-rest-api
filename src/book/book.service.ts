@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
 import { Book } from './Schemas/book_schema';
+import {Query} from 'express-serve-static-core';
+
 
 @Injectable()
 export class BookService {
@@ -10,8 +12,20 @@ export class BookService {
         private bookModel: mongoose.Model<Book>,
     ) {}
 
-    async findAll(): Promise<Book[]> {
-        const books = await this.bookModel.find();
+    async findAll(query: Query): Promise<Book[]> {
+        
+       const resperPage = 2
+       const currentPage = Number(query.page) || 1
+       const skip = resperPage * (currentPage -1)
+       const keyword = query.keyword ? {
+        title: {
+            $regex: query.keyword,
+            $option: "1"
+        }
+       } : {}
+       
+
+        const books = await this.bookModel.find({ ...keyword }).limit(resperPage).skip(skip);
         return books;
     }
 
@@ -22,6 +36,22 @@ export class BookService {
 
     async findById(id: string): Promise<Book> {
         const  book = await this.bookModel.findById(id)
+        if(!book) {
+            throw new NotFoundException('book not found')
+        }
         return  book 
     } 
+
+    async updateById(id: string, book: Book) : Promise<Book> {
+        return await this.bookModel.findByIdAndUpdate(id, book, {
+          new: true,
+          runValidators: true,
+        });
+ 
+    } 
+    
+    async deleteById(id: string) : Promise<Book> {
+        return await this.bookModel.findByIdAndDelete(id);
+    } 
+    
 }
